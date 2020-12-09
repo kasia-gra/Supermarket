@@ -3,9 +3,7 @@ import model.ProductBatch;
 import model.Promo;
 
 import java.io.FileNotFoundException;
-import java.io.IOException;
 import java.math.BigDecimal;
-import java.math.RoundingMode;
 import java.util.*;
 
 public class Supermarket {
@@ -14,40 +12,25 @@ public class Supermarket {
     FileHandler fileHandler;
 
 
-    Supermarket(FileHandler fileHandler, String pricesList) throws FileNotFoundException {
+    Supermarket(FileHandler fileHandler, String pricesList) {
         this.fileHandler = fileHandler;
         updateProductsList(pricesList);
     }
 
-    public void updateProductsList(String pricesList) throws FileNotFoundException {
-        List<List<String>>  records = fileHandler.readPrices(pricesList);
-        for (int line = 1; line < records.size(); line ++){
-            int barcode = Integer.parseInt(records.get(line).get(0));
-            String productName = records.get(line).get(1);
-            int qty = Integer.parseInt(records.get(line).get(2));
-            BigDecimal price = new BigDecimal(records.get(line).get(3));
-            BigDecimal unitPrice = price.divide(BigDecimal.valueOf(qty), 2, RoundingMode.HALF_UP);
-            Product addedProduct = new Product(productName);
-            if ( !availableProducts.containsKey(barcode)) {
-                availableProducts.put(barcode, addedProduct);
-            }
-            if (qty == 1) availableProducts.get(barcode).setUnitPrice(price);
-            else availableProducts.get(barcode).addPromo(new Promo(barcode, qty, unitPrice, price));
 
-        }
+    public void updateProductsList(String pricesList) {
+        availableProducts  = fileHandler.readPrices(pricesList);
     }
 
 
-    public BigDecimal scanBill(List<Integer> bill) throws IOException {
+    public BigDecimal scanBill(List<Integer> bill) {
         Map<Integer, ProductBatch> scannedProducts = new HashMap<>();
         BigDecimal totalPrice = new BigDecimal(0);
         for (int productCode : bill) {
             Product currentProduct = availableProducts.get(productCode);
             if (!scannedProducts.containsKey(productCode)) if (!currentProduct.hasDiscountOption()) {
                 totalPrice = totalPrice.add(currentProduct.getUnitPrice());
-            } else {
-                scannedProducts.put(productCode, new ProductBatch(1, currentProduct.getUnitPrice(), productCode));
-            }
+            } else scannedProducts.put(productCode, new ProductBatch(1, currentProduct.getUnitPrice(), productCode));
             else {
                 ProductBatch currentBatch = scannedProducts.get(productCode);
                 Promo bestDeal = currentProduct.getBestDeal();
